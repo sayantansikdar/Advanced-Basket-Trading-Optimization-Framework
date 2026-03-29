@@ -1,163 +1,157 @@
 """
-Data fetching and preprocessing utilities.
+Data utilities for fetching and preprocessing price data
 """
-
+import yfinance as yf
 import pandas as pd
 import numpy as np
-import yfinance as yf
-from typing import List, Optional, Tuple
-import warnings
-warnings.filterwarnings('ignore')
+from datetime import datetime, timedelta
 
-
-def fetch_price_data(
-    symbols: List[str],
-    start_date: str,
-    end_date: str,
-    interval: str = '1d'
-) -> pd.DataFrame:
+def fetch_data(tickers, start_date, end_date):
     """
-    Fetch price data for a list of symbols.
+    Fetch price data for multiple assets from Yahoo Finance
     
     Parameters:
     -----------
-    symbols : List[str]
-        List of stock/ETF symbols
+    tickers : list
+        List of asset symbols (e.g., ['AAPL', 'MSFT', 'GOOGL'])
     start_date : str
-        Start date (YYYY-MM-DD)
+        Start date in 'YYYY-MM-DD' format
     end_date : str
-        End date (YYYY-MM-DD)
-    interval : str
-        Data interval (default: '1d' for daily)
-        
+        End date in 'YYYY-MM-DD' format
+    
     Returns:
     --------
-    pd.DataFrame
-        DataFrame with prices, indexed by date
+    prices : DataFrame
+        Adjusted close prices for all tickers
     """
-    prices = {}
-    
-    for symbol in symbols:
-        try:
-            ticker = yf.Ticker(symbol)
-            data = ticker.history(start=start_date, end=end_date, interval=interval)
-            
-            if len(data) == 0:
-                print(f"Warning: No data for {symbol}")
-                continue
-                
-            prices[symbol] = data['Close']
-            print(f"Fetched {len(data)} records for {symbol}")
-            
-        except Exception as e:
-            print(f"Error fetching {symbol}: {e}")
-            continue
-    
-    if len(prices) == 0:
-        raise ValueError("No data was successfully fetched")
-    
-    prices_df = pd.DataFrame(prices)
-    prices_df.index = pd.to_datetime(prices_df.index)
-    
-    # Forward fill missing values, then backward fill
-    prices_df = prices_df.ffill().bfill()
-    
-    # Drop rows with any remaining NaN values
-    prices_df = prices_df.dropna()
-    
-    return prices_df
+    try:
+        # Download data
+        print(f"Downloading data for {tickers} from {start_date} to {end_date}...")
+        data = yf.download(tickers, start=start_date, end=end_date, progress=False)
+        
+        # Extract adjusted close prices
+        if 'Adj Close' in data.columns:
+            prices = data['Adj Close']
+        elif 'Close' in data.columns:
+            prices = data['Close']
+        else:
+            # Try to get the price data
+            if isinstance(data.columns, pd.MultiIndex):
+                prices = data.xs('Close', axis=1, level=1)
+            else:
+                prices = data
+        
+        # Ensure we have a DataFrame
+        if isinstance(prices, pd.Series):
+            prices = pd.DataFrame(prices)
+        
+        # Drop any columns with all NaN
+        prices = prices.dropna(axis=1, how='all')
+        
+        # Forward fill any missing values (updated syntax for newer pandas)
+        prices = prices.ffill()  # This replaces fillna(method='ffill')
+        
+        # Drop any remaining NaN at the beginning
+        prices = prices.dropna()
+        
+        print(f"Successfully fetched data for {len(prices.columns)} assets, {len(prices)} days")
+        return prices
+        
+    except Exception as e:
+        print(f"Error fetching data: {e}")
+        raise
 
-
-def load_price_data(filepath: str) -> pd.DataFrame:
+def get_log_prices(prices):
     """
-    Load price data from CSV file.
+    Convert prices to log prices
+    
+    Parameters:
+    -----------
+    prices : DataFrame
+        Price data
+    
+    Returns:
+    --------
+    log_prices : DataFrame
+        Log-transformed prices
+    """
+    return np.log(prices)
+
+def get_returns(prices):
+    """
+    Calculate daily returns
+    
+    Parameters:
+    -----------
+    prices : DataFrame
+        Price data
+    
+    Returns:
+    --------
+    returns : DataFrame
+        Daily returns
+    """
+    return prices.pct_change().dropna()
+
+def align_data(*dataframes):
+    """
+    Align multiple dataframes to common dates
+    
+    Parameters:
+    -----------
+    dataframes : list of DataFrames
+        DataFrames to align
+    
+    Returns:
+    --------
+    aligned : list of DataFrames
+        Aligned DataFrames with common index
+    """
+    common_index = None
+    for df in dataframes:
+        if common_index is None:
+            common_index = df.index
+        else:
+            common_index = common_index.intersection(df.index)
+    
+    aligned = [df.loc[common_index] for df in dataframes]
+    return aligned
+
+def load_from_csv(filepath):
+    """
+    Load price data from CSV file
     
     Parameters:
     -----------
     filepath : str
         Path to CSV file
-        
+    
     Returns:
     --------
-    pd.DataFrame
-        DataFrame with prices, indexed by date
+    prices : DataFrame
+        Price data with dates as index
     """
-    df = pd.read_csv(filepath, index_col=0, parse_dates=True)
-    return df
+    try:
+        df = pd.read_csv(filepath, index_col=0, parse_dates=True)
+        return df
+    except Exception as e:
+        print(f"Error loading CSV: {e}")
+        raise
 
-
-def prepare_data(
-    prices: pd.DataFrame,
-    min_periods: int = 100
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def save_to_csv(prices, filepath):
     """
-    Prepare price data for cointegration analysis.
+    Save price data to CSV file
     
     Parameters:
     -----------
-    prices : pd.DataFrame
-        DataFrame with price data
-    min_periods : int
-        Minimum number of periods required
-        
-    Returns:
-    --------
-    Tuple[pd.DataFrame, pd.DataFrame]
-        (log_prices, returns) tuple
-    """
-    if len(prices) < min_periods:
-        raise ValueError(f"Need at least {min_periods} periods, got {len(prices)}")
-    
-    # Calculate log prices
-    log_prices = np.log(prices)
-    
-    # Calculate returns
-    returns = log_prices.diff().dropna()
-    
-    return log_prices, returns
-
-
-def standardize_data(data: pd.DataFrame) -> pd.DataFrame:
-    """
-    Standardize data to have zero mean and unit variance.
-    
-    Parameters:
-    -----------
-    data : pd.DataFrame
-        Input data
-        
-    Returns:
-    --------
-    pd.DataFrame
-        Standardized data
-    """
-    return (data - data.mean()) / data.std()
-
-
-def create_spread(
-    prices: pd.DataFrame,
-    weights: np.ndarray
-) -> pd.Series:
-    """
-    Create a spread series from prices and weights.
-    
-    Parameters:
-    -----------
-    prices : pd.DataFrame
+    prices : DataFrame
         Price data
-    weights : np.ndarray
-        Cointegrating weights
-        
-    Returns:
-    --------
-    pd.Series
-        Spread series
+    filepath : str
+        Path to save CSV file
     """
-    if len(weights) != prices.shape[1]:
-        raise ValueError(f"Weights length ({len(weights)}) must match number of assets ({prices.shape[1]})")
-    
-    log_prices = np.log(prices)
-    spread = (log_prices.values @ weights).flatten()
-    spread_series = pd.Series(spread, index=prices.index)
-    
-    return spread_series
+    try:
+        prices.to_csv(filepath)
+        print(f"Data saved to {filepath}")
+    except Exception as e:
+        print(f"Error saving CSV: {e}")
+        raise

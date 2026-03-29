@@ -1,194 +1,150 @@
 """
-Trading strategy implementation for basket trading.
+Trading strategy implementation for mean-reversion trading
 """
-
 import numpy as np
 import pandas as pd
-from typing import Tuple, Optional
-from src.utils import z_score
-
 
 class TradingStrategy:
-    """
-    Mean-reversion trading strategy for cointegrated baskets.
-    """
+    """Mean-reversion trading strategy for basket spreads"""
     
-    def __init__(
-        self,
-        entry_threshold: float = 2.0,
-        exit_threshold: float = 0.5,
-        transaction_cost: float = 0.001,
-        lookback_period: int = 60
-    ):
+    def __init__(self, prices, weights, entry_threshold=2.0, exit_threshold=0.5, 
+                 transaction_cost=0.001):
         """
-        Initialize trading strategy.
+        Initialize trading strategy
         
         Parameters:
         -----------
+        prices : DataFrame
+            Price data
+        weights : array-like
+            Cointegrating weights (should have same length as number of assets)
         entry_threshold : float
-            Entry threshold in standard deviations
+            Number of standard deviations to enter position
         exit_threshold : float
-            Exit threshold in standard deviations (mean reversion)
+            Number of standard deviations to exit position
         transaction_cost : float
-            Transaction cost per trade (as fraction)
-        lookback_period : int
-            Lookback period for calculating statistics
+            Transaction cost as percentage
         """
+        self.prices = prices
+        # Ensure weights is a numpy array and has correct shape
+        self.weights = np.array(weights, dtype=float).flatten()
+        
+        # Debug: print shapes
+        print(f"Debug: prices shape = {prices.shape}, weights shape = {self.weights.shape}")
+        
+        # Check if dimensions match
+        if len(self.weights) != len(prices.columns):
+            raise ValueError(f"Weights length ({len(self.weights)}) must match number of assets ({len(prices.columns)})")
+        
         self.entry_threshold = entry_threshold
         self.exit_threshold = exit_threshold
         self.transaction_cost = transaction_cost
-        self.lookback_period = lookback_period
-    
-    def generate_signals(self, spread: pd.Series) -> pd.Series:
-        """
-        Generate trading signals from spread series.
         
-        Parameters:
-        -----------
-        spread : pd.Series
-            Spread series
-            
-        Returns:
-        --------
-        pd.Series
-            Trading signals: 1 for long spread, -1 for short spread, 0 for no position
-        """
-        signals = pd.Series(0, index=spread.index)
+        # Calculate log prices and spread
+        self.log_prices = np.log(prices)
+        self.spread = self._calculate_spread()
+        
+    def _calculate_spread(self):
+        """Calculate spread using weights"""
+        # Make sure dimensions align
+        spread = np.dot(self.log_prices.values, self.weights)
+        return pd.Series(spread, index=self.prices.index)
+    
+    def _calculate_zscore(self, window=20):
+        """Calculate rolling z-score of spread"""
+        rolling_mean = self.spread.rolling(window=window).mean()
+        rolling_std = self.spread.rolling(window=window).std()
+        zscore = (self.spread - rolling_mean) / rolling_std
+        return zscore
+    
+    def generate_signals(self):
+        """Generate trading signals based on z-score"""
+        zscore = self._calculate_zscore()
+        
+        signals = pd.Series(0, index=self.prices.index)
+        
+        # Entry conditions
+        signals[zscore > self.entry_threshold] = -1  # Short spread
+        signals[zscore < -self.entry_threshold] = 1  # Long spread
+        
+        # Exit conditions
+        signals[abs(zscore) < self.exit_threshold] = 0
+        
+        # Ensure signals are held until exit (simple version - no position holding)
         position = 0
+        final_signals = pd.Series(0, index=self.prices.index)
         
-        for i in range(self.lookback_period, len(spread)):
-            # Calculate rolling statistics
-            spread_window = spread.iloc[i - self.lookback_period:i]
-            mean_spread = spread_window.mean()
-            std_spread = spread_window.std()
-            
-            if std_spread == 0:
-                signals.iloc[i] = position
-                continue
-            
-            # Normalize current spread
-            z = (spread.iloc[i] - mean_spread) / std_spread
-            
-            if position == 0:
-                # No position: check for entry
-                if z > self.entry_threshold:
-                    position = -1  # Short spread (expect mean reversion down)
-                elif z < -self.entry_threshold:
-                    position = 1   # Long spread (expect mean reversion up)
-            elif position == 1:
-                # Long position: check for exit
-                if z > -self.exit_threshold:  # Spread reverted back toward mean
-                    position = 0
-            elif position == -1:
-                # Short position: check for exit
-                if z < self.exit_threshold:  # Spread reverted back toward mean
-                    position = 0
-            
-            signals.iloc[i] = position
+        for i, sig in signals.items():
+            if sig != 0:
+                position = sig
+            final_signals[i] = position
         
-        return signals
+        return final_signals
     
-    def calculate_returns(
-        self,
-        spread: pd.Series,
-        signals: pd.Series,
-        weights: np.ndarray,
-        prices: pd.DataFrame
-    ) -> pd.Series:
+    def backtest(self):
         """
-        Calculate strategy returns.
+        Run backtest and calculate returns
         
-        Parameters:
-        -----------
-        spread : pd.Series
-            Spread series
-        signals : pd.Series
-            Trading signals
-        weights : np.ndarray
-            Cointegrating weights
-        prices : pd.DataFrame
-            Price data (log prices)
-            
         Returns:
         --------
-        pd.Series
+        returns : Series
             Strategy returns
         """
-        returns = pd.Series(0.0, index=spread.index)
-        prev_signal = 0
+        signals = self.generate_signals()
         
-        # Calculate asset returns
-        asset_returns = prices.diff().dropna()
-        spread_returns = spread.diff().dropna()
+        # Calculate spread returns (change in spread)
+        spread_returns = self.spread.diff().shift(-1)  # Forward-looking returns
         
-        for i in range(1, len(signals)):
-            if i >= len(spread_returns):
-                continue
-                
-            signal = signals.iloc[i]
-            prev_signal = signals.iloc[i - 1]
-            
-            # Calculate return from spread reversion
-            # When long spread: profit if spread decreases
-            # When short spread: profit if spread increases
-            if signal != 0:
-                spread_return = -spread_returns.iloc[i] * signal
-                
-                # Apply transaction cost when position changes
-                if signal != prev_signal and prev_signal != 0:
-                    spread_return -= self.transaction_cost * 2  # Exit + enter
-                elif signal != prev_signal:
-                    spread_return -= self.transaction_cost  # Enter only
-                
-                returns.iloc[i] = spread_return
-            else:
-                # Exit transaction cost if closing position
-                if prev_signal != 0:
-                    returns.iloc[i] = -self.transaction_cost
+        # Strategy returns = position * spread_return
+        strategy_returns = signals * spread_returns
         
-        return returns
+        # Apply transaction costs when positions change
+        position_changes = signals.diff().abs()
+        transaction_costs = position_changes * self.transaction_cost
+        
+        # Net returns
+        net_returns = strategy_returns - transaction_costs
+        
+        # Fill NaN and drop first row
+        net_returns = net_returns.fillna(0)
+        
+        return net_returns
     
-    def backtest(
-        self,
-        spread: pd.Series,
-        weights: np.ndarray,
-        prices: pd.DataFrame
-    ) -> dict:
-        """
-        Run backtest and return performance metrics.
+    def get_metrics(self, returns):
+        """Calculate performance metrics"""
+        if len(returns) == 0 or returns.std() == 0:
+            return {
+                'Sharpe Ratio': 0,
+                'Total Return': 0,
+                'Max Drawdown': 0,
+                'Profit Factor': 0,
+                'Win Rate': 0
+            }
         
-        Parameters:
-        -----------
-        spread : pd.Series
-            Spread series
-        weights : np.ndarray
-            Cointegrating weights
-        prices : pd.DataFrame
-            Price data
-            
-        Returns:
-        --------
-        dict
-            Dictionary with performance metrics
-        """
-        from src.utils import (
-            sharpe_ratio, max_drawdown, profit_factor, half_life
-        )
+        # Sharpe Ratio (annualized)
+        sharpe = np.sqrt(252) * returns.mean() / (returns.std() + 1e-9)
         
-        signals = self.generate_signals(spread)
-        returns = self.calculate_returns(spread, signals, weights, prices)
+        # Total Return
+        total_return = (1 + returns).prod() - 1
         
-        # Calculate metrics
-        cumulative_returns = (1 + returns).cumprod()
+        # Maximum Drawdown
+        cumulative = (1 + returns).cumprod()
+        running_max = cumulative.expanding().max()
+        drawdown = (cumulative - running_max) / running_max
+        max_drawdown = drawdown.min()
         
-        metrics = {
-            'total_return': cumulative_returns.iloc[-1] - 1,
-            'sharpe_ratio': sharpe_ratio(returns),
-            'max_drawdown': max_drawdown(cumulative_returns),
-            'profit_factor': profit_factor(returns),
-            'half_life': half_life(spread),
-            'num_trades': (signals.diff() != 0).sum(),
-            'win_rate': (returns > 0).sum() / len(returns[returns != 0]) if len(returns[returns != 0]) > 0 else 0
+        # Profit Factor
+        profits = returns[returns > 0].sum()
+        losses = abs(returns[returns < 0].sum())
+        profit_factor = profits / (losses + 1e-9)
+        
+        # Win Rate
+        win_rate = (returns > 0).sum() / (len(returns) + 1e-9)
+        
+        return {
+            'Sharpe Ratio': sharpe,
+            'Total Return': total_return,
+            'Max Drawdown': max_drawdown,
+            'Profit Factor': profit_factor,
+            'Win Rate': win_rate
         }
-        
-        return metrics
