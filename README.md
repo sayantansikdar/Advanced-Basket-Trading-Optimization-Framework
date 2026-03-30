@@ -79,41 +79,47 @@ Competitive Variable-Fidelity Surrogate-Assisted CMA-ES
 - Mirrored Sampling: Better exploration of weight space
 - Variable-Fidelity: Uses cheap approximations to guide search
 - Sharpe Ratio Achieved: 3.851
+```
 2. Bayesian Optimization 📈 (Best Returns)
-python
+```python
 Gaussian Process-based Bayesian Optimization
 - Expected Improvement acquisition
 - Efficient global optimization
 - Sharpe Ratio Achieved: 3.469
 - Total Return: 63.76%
+```
 3. Tuned TuRBO ⚡ (Balanced)
-python
+```python
 Trust Region Bayesian Optimization with Optimal Hyperparameters
 - Adaptive trust region length
 - Sobol sequence initialization
 - Batch evaluation support
 - Expected Sharpe: 2.5-3.0
+```
 4. SAASBO 🎯 (Sparse)
-python
+```python
 Sparse Axis-Aligned Subspaces Bayesian Optimization
 - Hierarchical sparsity priors
 - Automatic relevance determination
 - Half-Cauchy prior on inverse lengthscales
 - Expected Sharpe: 2.0-2.5
+```
 5. Standard TuRBO
-python
+```python
 Base Trust Region Bayesian Optimization
 - Trust region adaptation
 - Expected Improvement acquisition
 - Sharpe Ratio Achieved: 0.452
+```
 6. Standard CMA-ES
-python
+```python
 Covariance Matrix Adaptation Evolution Strategy
 - Evolution strategy for continuous optimization
 - Handles noisy objective functions
 - Sharpe Ratio Achieved: 0.420
+```
 🏗️ Project Structure
-text
+```text
 Improving-Basket-Trading-Using-Bayesian-Optimization/
 │
 ├── 📁 src/                          # Core source code
@@ -144,6 +150,8 @@ Improving-Basket-Trading-Using-Bayesian-Optimization/
 ├── 📄 compare_top_four.py           # Top optimizer analysis
 ├── 📄 requirements.txt              # Python dependencies
 └── 📄 README.md                     # This file
+```
+
 🔄 Complete Workflow
 Step 1: Data Collection & Preprocessing
 Fetches historical price data from Yahoo Finance
@@ -170,13 +178,14 @@ Returns: Profit from spread mean reversion minus transaction costs (0.1%)
 Step 3: Optimization Process
 Each optimizer searches for weights that maximize Sharpe ratio on training data:
 
-text
+```text
 For each optimizer:
    1. Generate candidate weight combinations
    2. Evaluate strategy performance on training data
    3. Update optimization model based on results
    4. Repeat for N trials (configurable)
    5. Return best weights
+```
 Step 4: Evaluation & Validation
 Rolling Window Validation: Tests on multiple train/test splits
 
@@ -210,24 +219,28 @@ Python 3.8 or higher
 pip package manager
 
 Step 1: Clone Repository
-bash
+```bash
 git clone https://github.com/sayantansikdar/Improving-Basket-Trading-Using-Bayesian-Optimization.git
 cd Improving-Basket-Trading-Using-Bayesian-Optimization
+```
 Step 2: Create Virtual Environment
-bash
+```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 Step 3: Install Dependencies
-bash
+```bash
 pip install -r requirements.txt
+```
 Step 4: Run Basic Comparison
-bash
+```bash
 # Compare all optimizers on 2023 data
 python run_comparison.py --assets AAPL MSFT GOOGL \
     --start-date 2023-01-01 --end-date 2023-12-31 \
     --n-trials 50 --optimizers bayesian cmaes turbo cvfs_cmaes turbo_tuned saasbo
+```
 Step 5: Generate Analysis
-bash
+```bash
 # Generate all visualizations
 python visualization.py
 
@@ -236,6 +249,7 @@ python generate_report.py
 
 # Open report
 open results/comprehensive_report.html
+```
 📊 Visualization Gallery
 1. Metric Comparison Bar Charts
 Compares Sharpe ratio, returns, profit factor, and win rate across optimizers
@@ -287,27 +301,30 @@ Shows correlation between strategy returns and individual assets
 
 📈 Example Usage
 Compare Specific Optimizers
-bash
+```bash
 # Compare only top performers
 python run_comparison.py --assets AAPL MSFT GOOGL \
     --start-date 2023-01-01 --end-date 2023-12-31 \
     --n-trials 50 --optimizers bayesian cvfs_cmaes turbo_tuned
+```
 Optimize for Different Metrics
-bash
+```bash
 # Optimize for total return instead of Sharpe ratio
 python run_comparison.py --assets AAPL MSFT GOOGL \
     --start-date 2023-01-01 --end-date 2023-12-31 \
     --n-trials 50 --metric "Total Return" \
     --optimizers bayesian cvfs_cmaes
+```
 Custom Asset List
-bash
+```bash
 # Test on different assets
 python run_comparison.py --assets JPM BAC WFC \
     --start-date 2023-01-01 --end-date 2023-12-31 \
     --n-trials 50 --optimizers cvfs_cmaes bayesian
+```
 🔬 Technical Deep Dive
 CVFS-CMA-ES Algorithm
-python
+```python
 Key Features:
 1. Active CMA: Negative updates for worst solutions
    - Reduces variance in unpromising directions
@@ -320,8 +337,9 @@ Key Features:
 3. Variable-Fidelity Modeling:
    - Uses cheap approximations for initial screening
    - Reserves high-fidelity evaluations for promising candidates
+```
 SAASBO Algorithm
-python
+```python
 Key Features:
 1. Hierarchical Sparsity Priors:
    - Global shrinkage: τ ~ HC(β)
@@ -332,8 +350,9 @@ Key Features:
    - Log-normal distributions ensure positivity
    - Clip to reasonable bounds
    - Monte Carlo integration over posterior
+```
 Tuned TuRBO Parameters
-python
+```python
 Optimal Hyperparameters (from Eriksson et al. 2019):
 - length_init = 0.8
 - length_min = 0.0078125  (2^-7)
@@ -343,6 +362,7 @@ Optimal Hyperparameters (from Eriksson et al. 2019):
 - n_candidates = 5000
 - n_restarts = 3
 - batch_size = 4
+```
 📊 Key Insights from Research
 Risk-Return Trade-off
 Strategy	Risk Profile	Return	Drawdown	Best For
@@ -355,6 +375,7 @@ Sharpe Ratio	CVFS-CMA-ES	Bayesian	Tuned TuRBO
 Total Return	Bayesian	Tuned TuRBO	CVFS-CMA-ES
 Drawdown Control	CVFS-CMA-ES	CMA-ES	Tuned TuRBO
 Profit Factor	CVFS-CMA-ES	Bayesian	Tuned TuRBO
+
 🎯 Recommendations
 Based on Investment Objectives:
 Objective	Recommended Optimizer	Expected Results
@@ -363,7 +384,7 @@ Maximum Absolute Returns	Bayesian Optimization	Sharpe 3.47, 63.8% return, -27.8%
 Balanced Approach	Tuned TuRBO	Sharpe 2.5-3.0, 15-30% return
 Conservative/Low Risk	CVFS-CMA-ES	Lowest drawdown, steady returns
 Portfolio Allocation Suggestion:
-text
+```text
 Conservative Portfolio:
 - 70% CVFS-CMA-ES (risk management)
 - 30% Bayesian (growth potential)
@@ -380,7 +401,7 @@ Validation: 20% of data
 Test: 20% of data
 
 Window Size: 20 days for rolling statistics
-
+```
 Metrics Validation
 All metrics calculated on out-of-sample test data
 
@@ -389,6 +410,7 @@ Transaction costs included (0.1% per trade)
 No look-ahead bias (uses only past information)
 
 Robust to different market conditions
+
 
 🔮 Future Improvements
 Planned Enhancements
