@@ -80,7 +80,7 @@ Competitive Variable-Fidelity Surrogate-Assisted CMA-ES
 - Variable-Fidelity: Uses cheap approximations to guide search
 - Sharpe Ratio Achieved: 3.851
 ```
-2. Bayesian Optimization 📈 (Best Returns)
+## 2. Bayesian Optimization 📈 (Best Returns)
 ```python
 Gaussian Process-based Bayesian Optimization
 - Expected Improvement acquisition
@@ -88,7 +88,7 @@ Gaussian Process-based Bayesian Optimization
 - Sharpe Ratio Achieved: 3.469
 - Total Return: 63.76%
 ```
-3. Tuned TuRBO ⚡ (Balanced)
+## 3. Tuned TuRBO ⚡ (Balanced)
 ```python
 Trust Region Bayesian Optimization with Optimal Hyperparameters
 - Adaptive trust region length
@@ -96,7 +96,7 @@ Trust Region Bayesian Optimization with Optimal Hyperparameters
 - Batch evaluation support
 - Expected Sharpe: 2.5-3.0
 ```
-4. SAASBO 🎯 (Sparse)
+## 4. SAASBO 🎯 (Sparse)
 ```python
 Sparse Axis-Aligned Subspaces Bayesian Optimization
 - Hierarchical sparsity priors
@@ -104,21 +104,21 @@ Sparse Axis-Aligned Subspaces Bayesian Optimization
 - Half-Cauchy prior on inverse lengthscales
 - Expected Sharpe: 2.0-2.5
 ```
-5. Standard TuRBO
+## 5. Standard TuRBO
 ```python
 Base Trust Region Bayesian Optimization
 - Trust region adaptation
 - Expected Improvement acquisition
 - Sharpe Ratio Achieved: 0.452
 ```
-6. Standard CMA-ES
+## 6. Standard CMA-ES
 ```python
 Covariance Matrix Adaptation Evolution Strategy
 - Evolution strategy for continuous optimization
 - Handles noisy objective functions
 - Sharpe Ratio Achieved: 0.420
 ```
-🏗️ Project Structure
+### 🏗️ Project Structure
 ```text
 Improving-Basket-Trading-Using-Bayesian-Optimization/
 │
@@ -152,8 +152,8 @@ Improving-Basket-Trading-Using-Bayesian-Optimization/
 └── 📄 README.md                     # This file
 ```
 
-🔄 Complete Workflow
-Step 1: Data Collection & Preprocessing
+### 🔄 Complete Workflow
+## Step 1: Data Collection & Preprocessing
 Fetches historical price data from Yahoo Finance
 
 Handles missing data and aligns dates
@@ -162,7 +162,7 @@ Converts to log prices for cointegration analysis
 
 Calculates returns and rolling statistics
 
-Step 2: Trading Strategy
+## Step 2: Trading Strategy
 Spread Calculation: spread = w1*log(p1) + w2*log(p2) + ... + wn*log(pn)
 
 Z-score Normalization: Rolling mean and standard deviation (20-day window)
@@ -175,7 +175,7 @@ Position Logic: Enters long when z-score < -threshold, short when > threshold
 
 Returns: Profit from spread mean reversion minus transaction costs (0.1%)
 
-Step 3: Optimization Process
+## Step 3: Optimization Process
 Each optimizer searches for weights that maximize Sharpe ratio on training data:
 
 ```text
@@ -186,7 +186,7 @@ For each optimizer:
    4. Repeat for N trials (configurable)
    5. Return best weights
 ```
-Step 4: Evaluation & Validation
+## Step 4: Evaluation & Validation
 Rolling Window Validation: Tests on multiple train/test splits
 
 Out-of-Sample Testing: Evaluates on unseen data
@@ -203,7 +203,7 @@ Profit Factor (gross profit / gross loss)
 
 Win Rate (% of profitable trades)
 
-Step 5: Visualization & Reporting
+## Step 5: Visualization & Reporting
 Generates 10+ plot types automatically
 
 Creates interactive HTML report
@@ -212,34 +212,34 @@ Produces ranked summary tables
 
 Saves all metrics to CSV
 
-🚀 Installation & Usage
-Prerequisites
+### 🚀 Installation & Usage
+## Prerequisites
 Python 3.8 or higher
 
 pip package manager
 
-Step 1: Clone Repository
+# Step 1: Clone Repository
 ```bash
 git clone https://github.com/sayantansikdar/Improving-Basket-Trading-Using-Bayesian-Optimization.git
 cd Improving-Basket-Trading-Using-Bayesian-Optimization
 ```
-Step 2: Create Virtual Environment
+# Step 2: Create Virtual Environment
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
-Step 3: Install Dependencies
+# Step 3: Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
-Step 4: Run Basic Comparison
+# Step 4: Run Basic Comparison
 ```bash
 # Compare all optimizers on 2023 data
 python run_comparison.py --assets AAPL MSFT GOOGL \
     --start-date 2023-01-01 --end-date 2023-12-31 \
     --n-trials 50 --optimizers bayesian cmaes turbo cvfs_cmaes turbo_tuned saasbo
 ```
-Step 5: Generate Analysis
+# Step 5: Generate Analysis
 ```bash
 # Generate all visualizations
 python visualization.py
@@ -250,56 +250,56 @@ python generate_report.py
 # Open report
 open results/comprehensive_report.html
 ```
-📊 Visualization Gallery
-1. Metric Comparison Bar Charts
+### 📊 Visualization Gallery
+## 1. Metric Comparison Bar Charts
 Compares Sharpe ratio, returns, profit factor, and win rate across optimizers
 
 Automatically handles any number of optimizers
 
-2. Weight Distributions
+## 2. Weight Distributions
 Shows asset weights found by each optimizer
 
 Color-coded: green for positive, red for negative weights
 
-3. Radar Chart
+## 3. Radar Chart
 Multi-dimensional comparison of normalized metrics
 
 Helps identify optimizer strengths and weaknesses
 
-4. Ranking Heatmap
+## 4. Ranking Heatmap
 Shows ranking of each optimizer per metric (1 = best)
 
 Color-coded for easy interpretation
 
-5. Parallel Coordinates
+## 5. Parallel Coordinates
 Visualizes performance across multiple dimensions
 
 Helps identify patterns and trade-offs
 
-6. Equity Curves
+## 6. Equity Curves
 Shows wealth accumulation over time
 
 Compares strategy performance vs buy-and-hold
 
-7. Drawdown Analysis
+## 7. Drawdown Analysis
 Visualizes drawdown periods
 
 Shows return distribution statistics
 
-8. Trade Analysis
+## 8. Trade Analysis
 Distribution of individual trade returns
 
 Trade sequence visualization
 
-9. Risk-Return Scatter
+## 9. Risk-Return Scatter
 Plots Sharpe ratio vs maximum drawdown
 
 Helps identify optimal risk-return trade-offs
 
-10. Correlation Heatmap
+## 10. Correlation Heatmap
 Shows correlation between strategy returns and individual assets
 
-📈 Example Usage
+### 📈 Example Usage
 Compare Specific Optimizers
 ```bash
 # Compare only top performers
@@ -322,8 +322,8 @@ python run_comparison.py --assets JPM BAC WFC \
     --start-date 2023-01-01 --end-date 2023-12-31 \
     --n-trials 50 --optimizers cvfs_cmaes bayesian
 ```
-🔬 Technical Deep Dive
-CVFS-CMA-ES Algorithm
+### 🔬 Technical Deep Dive
+## CVFS-CMA-ES Algorithm
 ```python
 Key Features:
 1. Active CMA: Negative updates for worst solutions
@@ -338,7 +338,7 @@ Key Features:
    - Uses cheap approximations for initial screening
    - Reserves high-fidelity evaluations for promising candidates
 ```
-SAASBO Algorithm
+## SAASBO Algorithm
 ```python
 Key Features:
 1. Hierarchical Sparsity Priors:
@@ -351,7 +351,7 @@ Key Features:
    - Clip to reasonable bounds
    - Monte Carlo integration over posterior
 ```
-Tuned TuRBO Parameters
+## Tuned TuRBO Parameters
 ```python
 Optimal Hyperparameters (from Eriksson et al. 2019):
 - length_init = 0.8
@@ -363,20 +363,22 @@ Optimal Hyperparameters (from Eriksson et al. 2019):
 - n_restarts = 3
 - batch_size = 4
 ```
-📊 Key Insights from Research
-Risk-Return Trade-off
+### 📊 Key Insights from Research
+
+## Risk-Return Trade-off
 Strategy	Risk Profile	Return	Drawdown	Best For
 CVFS-CMA-ES	Low Risk	8.61%	-3.99%	Conservative investors
 Bayesian	High Risk	63.76%	-27.76%	Aggressive growth
 Tuned TuRBO	Moderate	15-30%	-10-15%	Balanced portfolios
-Performance Rankings
+
+## Performance Rankings
 Metric	1st Place	2nd Place	3rd Place
 Sharpe Ratio	CVFS-CMA-ES	Bayesian	Tuned TuRBO
 Total Return	Bayesian	Tuned TuRBO	CVFS-CMA-ES
 Drawdown Control	CVFS-CMA-ES	CMA-ES	Tuned TuRBO
 Profit Factor	CVFS-CMA-ES	Bayesian	Tuned TuRBO
 
-🎯 Recommendations
+### 🎯 Recommendations
 Based on Investment Objectives:
 Objective	Recommended Optimizer	Expected Results
 Maximum Risk-Adjusted Returns	CVFS-CMA-ES	Sharpe 3.85, 8.6% return, -4% DD
@@ -402,7 +404,7 @@ Test: 20% of data
 
 Window Size: 20 days for rolling statistics
 ```
-Metrics Validation
+## Metrics Validation
 All metrics calculated on out-of-sample test data
 
 Transaction costs included (0.1% per trade)
@@ -412,7 +414,7 @@ No look-ahead bias (uses only past information)
 Robust to different market conditions
 
 
-🔮 Future Improvements
+### 🔮 Future Improvements
 Planned Enhancements
 Ensemble Methods
 
@@ -454,27 +456,27 @@ Order execution simulation
 
 Broker API integration
 
-📚 References
-Academic Papers
-CVFS-CMA-ES: Li, Z., et al. (2021). "A competitive variable-fidelity surrogate-assisted CMA-ES for expensive optimization." Aerospace Science and Technology.
+### 📚 References
+## Academic Papers
+** CVFS-CMA-ES: Li, Z., et al. (2021). "A competitive variable-fidelity surrogate-assisted CMA-ES for expensive optimization." Aerospace Science and Technology.
 
-TuRBO: Eriksson, D., et al. (2019). "Scalable Global Optimization via Local Bayesian Optimization." NeurIPS.
+** TuRBO: Eriksson, D., et al. (2019). "Scalable Global Optimization via Local Bayesian Optimization." NeurIPS.
 
-SAASBO: Eriksson, D., & Jankowiak, M. (2021). "High-Dimensional Bayesian Optimization with Sparse Axis-Aligned Subspaces." UAI.
+** SAASBO: Eriksson, D., & Jankowiak, M. (2021). "High-Dimensional Bayesian Optimization with Sparse Axis-Aligned Subspaces." UAI.
 
-CMA-ES: Hansen, N. (2016). "The CMA Evolution Strategy: A Tutorial." arXiv:1604.00772.
+** CMA-ES: Hansen, N. (2016). "The CMA Evolution Strategy: A Tutorial." arXiv:1604.00772.
 
-Code References
+# Code References
 CMA-ES Python Implementation
 
 scikit-optimize
 
 BoTorch (for future enhancements)
 
-📄 License
+### 📄 License
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-👥 Contributing
+### 👥 Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 Areas for Contribution
@@ -488,8 +490,8 @@ Documentation enhancements
 
 Bug fixes
 
-📧 Contact
+### 📧 Contact
 For questions or feedback, please open an issue on GitHub.
 
-🌟 Star History
+### 🌟 Star History
 If you find this project useful, please consider giving it a star! ⭐
