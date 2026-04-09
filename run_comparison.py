@@ -3,6 +3,7 @@ Main script to run comparison of different optimization methods
 """
 import sys
 import os
+from src.optimizer_runner import OptimizationRunner
 
 # Add the current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -76,6 +77,7 @@ print("\n" + "="*60)
 print("BASKET TRADING OPTIMIZATION COMPARISON")
 print("="*60)
 
+
 def main():
     parser = argparse.ArgumentParser(description='Compare optimization methods for basket trading')
     parser.add_argument('--assets', nargs='+', required=True,
@@ -89,13 +91,15 @@ def main():
     parser.add_argument('--metric', default='Sharpe Ratio',
                        choices=['Sharpe Ratio', 'Total Return', 'Profit Factor'],
                        help='Metric to optimize for')
-    parser.add_argument('--optimizers', nargs='+', 
-                       default=['bayesian', 'cmaes', 'turbo'],
-                       choices=['bayesian', 'cmaes', 'turbo'],
+
+    # Correct indentation here
+    parser.add_argument('--optimizers', nargs='+',
+                       default=['bayesian', 'cmaes', 'turbo', 'cvfs_cmaes', 'turbo_tuned', 'saasbo'],
+                       choices=['bayesian', 'cmaes', 'turbo', 'cvfs_cmaes', 'turbo_tuned', 'saasbo'],
                        help='Optimizers to run')
-    
+
     args = parser.parse_args()
-    
+
     print(f"\nConfiguration:")
     print(f"  Assets: {args.assets}")
     print(f"  Period: {args.start_date} to {args.end_date}")
@@ -103,7 +107,7 @@ def main():
     print(f"  Trials per optimizer: {args.n_trials}")
     print(f"  Optimization metric: {args.metric}")
     print("="*60 + "\n")
-    
+
     # Step 1: Fetch data
     print("Step 1: Fetching price data...")
     try:
@@ -112,26 +116,22 @@ def main():
         print(f"  Data range: {prices.index[0].date()} to {prices.index[-1].date()}")
     except Exception as e:
         print(f"  ✗ Error fetching data: {e}")
-        print("\nTroubleshooting tips:")
-        print("  1. Check your internet connection")
-        print("  2. Verify the stock symbols are correct (e.g., AAPL, MSFT, GOOGL)")
-        print("  3. Try with fewer assets first")
         return
-    
-    # Step 2: Prepare train/test split
+
+    # Step 2: Train/validation/test split
     print("\nStep 2: Preparing train/test split...")
     train_size = int(len(prices) * 0.6)
     val_size = int(len(prices) * 0.2)
-    
+
     train_data = prices.iloc[:train_size]
     val_data = prices.iloc[train_size:train_size+val_size]
     test_data = prices.iloc[train_size+val_size:]
-    
-    print(f"  Training data: {train_data.index[0].date()} to {train_data.index[-1].date()} ({len(train_data)} days)")
-    print(f"  Validation data: {val_data.index[0].date()} to {val_data.index[-1].date()} ({len(val_data)} days)")
-    print(f"  Test data: {test_data.index[0].date()} to {test_data.index[-1].date()} ({len(test_data)} days)")
-    
-    # Step 3: Setup configuration
+
+    print(f"  Training data: {train_data.index[0].date()} to {train_data.index[-1].date()}")
+    print(f"  Validation data: {val_data.index[0].date()} to {val_data.index[-1].date()}")
+    print(f"  Test data: {test_data.index[0].date()} to {test_data.index[-1].date()}")
+
+    # Config
     config = {
         'n_trials': args.n_trials,
         'metric': args.metric,
@@ -139,60 +139,14 @@ def main():
         'exit_threshold': 0.5,
         'transaction_cost': 0.001
     }
-    
-    # Step 4: Run optimization comparison
+
+    # Run optimization
     print("\nStep 3: Running optimization comparison...")
     runner = OptimizationRunner(train_data, test_data, config)
     results = runner.run_all(optimizers=args.optimizers)
-    
-    # Step 5: Generate visualizations
-    if any(v is not None for v in results.values()):
-        print("\nStep 4: Generating comparison visualizations...")
-        try:
-            visualizer = OptimizationVisualizer(results)
-            visualizer.create_all_plots()
-        except Exception as e:
-            print(f"  Warning: Could not generate visualizations: {e}")
-    else:
-        print("\nWarning: No successful optimization results to visualize")
-    
-    # Step 6: Save results
-    print("\nStep 5: Saving results...")
-    try:
-        os.makedirs('results', exist_ok=True)
-        
-        summary_data = []
-        for name, result in results.items():
-            if result is not None:
-                row = {'Optimizer': name.upper()}
-                row.update(result['metrics'])
-                summary_data.append(row)
-        
-        if summary_data:
-            summary_df = pd.DataFrame(summary_data)
-            summary_df.to_csv('results/comparison_summary.csv', index=False)
-            print("  ✓ Results saved to results/comparison_summary.csv")
-    except Exception as e:
-        print(f"  Warning: Could not save results: {e}")
-    
-    # Print final comparison
-    print("\n" + "="*60)
-    print("FINAL COMPARISON SUMMARY")
-    print("="*60)
-    
-    for name, result in results.items():
-        if result is not None:
-            print(f"\n{name.upper()}:")
-            metrics = result['metrics']
-            print(f"  Sharpe Ratio:     {metrics.get('Sharpe Ratio', 0):.3f}")
-            print(f"  Total Return:     {metrics.get('Total Return', 0):.2%}")
-            print(f"  Profit Factor:    {metrics.get('Profit Factor', 0):.2f}")
-            print(f"  Win Rate:         {metrics.get('Win Rate', 0):.2%}")
-            print(f"  Max Drawdown:     {metrics.get('Max Drawdown', 0):.2%}")
-    
-    print("\n" + "="*60)
-    print("✓ COMPARISON COMPLETE!")
-    print("="*60)
+
+    print("\n✓ COMPARISON COMPLETE!")
+
 
 if __name__ == "__main__":
     main()

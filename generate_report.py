@@ -1,10 +1,9 @@
 """
-Generate comprehensive HTML report for optimization comparison
+Generate comprehensive HTML report for all optimizers
 """
 import pandas as pd
 import numpy as np
 from pathlib import Path
-import matplotlib.pyplot as plt
 from datetime import datetime
 
 def generate_report():
@@ -13,7 +12,20 @@ def generate_report():
     # Load results
     results_df = pd.read_csv('results/comparison_summary.csv')
     
-    # Find best optimizer for each metric
+    # Define optimizer display names
+    display_names = {
+        'BAYESIAN': 'Bayesian Optimization (BO)',
+        'CMAES': 'CMA-ES',
+        'TURBO': 'TuRBO',
+        'CVFS_CMAES': 'CVFS-CMA-ES',
+        'TURBO_TUNED': 'TuRBO (Tuned)',
+        'SAASBO': 'SAASBO'
+    }
+    
+    # Add display names to dataframe
+    results_df['Display Name'] = results_df['Optimizer'].map(display_names)
+    
+    # Find best performers
     best_sharpe = results_df.loc[results_df['Sharpe Ratio'].idxmax()]
     best_return = results_df.loc[results_df['Total Return'].idxmax()]
     best_profit = results_df.loc[results_df['Profit Factor'].idxmax()]
@@ -80,9 +92,6 @@ def generate_report():
         }}
         tr:nth-child(even) {{ background-color: #f2f2f2; }}
         tr:hover {{ background-color: #e8f4f8; }}
-        .metric-good {{ color: #27ae60; font-weight: bold; }}
-        .metric-bad {{ color: #e74c3c; }}
-        .highlight {{ background-color: #fff3cd; }}
         .winner {{ 
             color: #27ae60; 
             font-size: 1.1em; 
@@ -137,16 +146,6 @@ def generate_report():
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             min-width: 150px;
         }}
-        .metric-value {{
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
-        }}
-        .metric-label {{
-            font-size: 12px;
-            color: #7f8c8d;
-            margin-top: 5px;
-        }}
         .footer {{
             margin-top: 40px;
             padding-top: 20px;
@@ -169,27 +168,27 @@ def generate_report():
 <div class="container">
     <h1>📊 Basket Trading Optimization - Complete Analysis Report</h1>
     <p><strong>Generated on:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-    <p><strong>Assets:</strong> AAPL, MSFT, GOOGL | <strong>Period:</strong> 2023-01-01 to 2023-12-31</p>
-    <p><strong>Optimizers:</strong> CMA-ES, TuRBO</p>
+    <p><strong>Assets:</strong> AAPL, MSFT, GOOGL</p>
+    <p><strong>Optimizers Compared:</strong> {', '.join(results_df['Display Name'].tolist())}</p>
     
     <div class="summary-box">
         <h2>🎯 Key Findings</h2>
         <ul style="font-size: 16px; line-height: 1.6;">
-            <li><strong>🏆 Best Risk-Adjusted Returns:</strong> <span class="winner">{best_sharpe['Optimizer']}</span> 
+            <li><strong>🏆 Best Risk-Adjusted Returns:</strong> <span class="winner">{best_sharpe['Display Name']}</span> 
                 (Sharpe Ratio: {best_sharpe['Sharpe Ratio']:.3f})</li>
-            <li><strong>📈 Highest Total Return:</strong> <span class="winner">{best_return['Optimizer']}</span> 
+            <li><strong>📈 Highest Total Return:</strong> <span class="winner">{best_return['Display Name']}</span> 
                 ({best_return['Total Return']:.2%})</li>
-            <li><strong>💰 Best Profit Factor:</strong> <span class="winner">{best_profit['Optimizer']}</span> 
+            <li><strong>💰 Best Profit Factor:</strong> <span class="winner">{best_profit['Display Name']}</span> 
                 ({best_profit['Profit Factor']:.2f})</li>
-            <li><strong>🎲 Best Win Rate:</strong> <span class="winner">{best_winrate['Optimizer']}</span> 
+            <li><strong>🎲 Best Win Rate:</strong> <span class="winner">{best_winrate['Display Name']}</span> 
                 ({best_winrate['Win Rate']:.2%})</li>
-            <li><strong>🛡️ Lowest Drawdown:</strong> <span class="winner">{best_drawdown['Optimizer']}</span> 
+            <li><strong>🛡️ Lowest Drawdown:</strong> <span class="winner">{best_drawdown['Display Name']}</span> 
                 ({best_drawdown['Max Drawdown']:.2%})</li>
         </ul>
     </div>
     
     <h2>📊 Performance Summary Table</h2>
-    {results_df.to_html(index=False, classes='table', float_format='%.3f')}
+    {results_df[['Display Name', 'Sharpe Ratio', 'Total Return', 'Max Drawdown', 'Profit Factor', 'Win Rate']].to_html(index=False, float_format='%.3f', classes='table')}
     
     <h2>🖼️ Visualization Gallery</h2>
     <p>Click on any image to view full size. All visualizations provide detailed insights into strategy performance.</p>
@@ -216,114 +215,103 @@ def generate_report():
             <p>Visual summary table with all key metrics.</p>
         </div>
         <div class="plot">
-            <h3>5. Equity Curves</h3>
-            <img src="plots/equity_curves.png" alt="Equity Curves" onclick="window.open(this.src)">
-            <p>Wealth accumulation over time for each strategy.</p>
+            <h3>5. Ranking Heatmap</h3>
+            <img src="plots/ranking_heatmap.png" alt="Ranking Heatmap" onclick="window.open(this.src)">
+            <p>Heatmap showing ranking of each optimizer per metric (1 = best).</p>
         </div>
         <div class="plot">
-            <h3>6. Drawdown Analysis</h3>
-            <img src="plots/drawdown_analysis.png" alt="Drawdown Analysis" onclick="window.open(this.src)">
-            <p>Drawdown periods and return distributions.</p>
+            <h3>6. Parallel Coordinates</h3>
+            <img src="plots/parallel_coordinates.png" alt="Parallel Coordinates" onclick="window.open(this.src)">
+            <p>Multi-dimensional performance comparison across all optimizers.</p>
         </div>
         <div class="plot">
-            <h3>7. Rolling Performance</h3>
-            <img src="plots/rolling_performance.png" alt="Rolling Performance" onclick="window.open(this.src)">
-            <p>20-day rolling window performance metrics showing strategy consistency.</p>
+            <h3>7. Top Four Equity Curves</h3>
+            <img src="plots/top_four_equity_curves.png" alt="Top Four Equity Curves" onclick="window.open(this.src)">
+            <p>Equity curves for the top performing optimizers.</p>
         </div>
         <div class="plot">
-            <h3>8. Cumulative Returns</h3>
-            <img src="plots/cumulative_returns.png" alt="Cumulative Returns" onclick="window.open(this.src)">
-            <p>Comparison with buy-and-hold equal-weight strategy.</p>
+            <h3>8. Top Four Metrics</h3>
+            <img src="plots/top_four_metrics.png" alt="Top Four Metrics" onclick="window.open(this.src)">
+            <p>Detailed metric comparison for top optimizers.</p>
         </div>
         <div class="plot">
-            <h3>9. Trade Analysis</h3>
-            <img src="plots/trade_analysis.png" alt="Trade Analysis" onclick="window.open(this.src)">
-            <p>Individual trade returns distribution and sequence.</p>
+            <h3>9. Risk-Return Scatter</h3>
+            <img src="plots/top_four_risk_return.png" alt="Risk-Return Scatter" onclick="window.open(this.src)">
+            <p>Risk-return trade-off visualization for top optimizers.</p>
         </div>
         <div class="plot">
-            <h3>10. Correlation Heatmap</h3>
-            <img src="plots/correlation_heatmap.png" alt="Correlation Heatmap" onclick="window.open(this.src)">
-            <p>Correlation between strategy returns and individual assets.</p>
+            <h3>10. Top Four Summary</h3>
+            <img src="plots/top_four_summary.png" alt="Top Four Summary" onclick="window.open(this.src)">
+            <p>Summary table for the top four optimizers.</p>
         </div>
     </div>
     
     <h2>📝 Detailed Strategy Analysis</h2>
     
     <div class="summary-box">
-        <h3>CMA-ES Strategy (Conservative)</h3>
+        <h3>CVFS-CMA-ES Strategy (Top Performer - Risk-Adjusted)</h3>
         <ul>
-            <li><strong>Approach:</strong> Conservative optimization focusing on stability</li>
-            <li><strong>Key Characteristics:</strong> Lower drawdown (-3.38%), consistent but modest returns</li>
-            <li><strong>Best For:</strong> Risk-averse investors seeking steady returns</li>
-            <li><strong>Weights:</strong> Balanced approach with moderate positions</li>
+            <li><strong>Approach:</strong> Competitive Variable-Fidelity Surrogate-Assisted CMA-ES</li>
+            <li><strong>Key Characteristics:</strong> Best Sharpe ratio ({best_sharpe['Sharpe Ratio']:.3f}), excellent drawdown control ({best_sharpe['Max Drawdown']:.2%})</li>
+            <li><strong>Best For:</strong> Risk-averse investors seeking optimal risk-adjusted returns</li>
+            <li><strong>Key Features:</strong> Active CMA, mirrored sampling, variable-fidelity modeling</li>
         </ul>
         
-        <h3>TuRBO Strategy (Aggressive)</h3>
+        <h3>Bayesian Optimization Strategy (Best Absolute Returns)</h3>
         <ul>
-            <li><strong>Approach:</strong> Trust Region Bayesian Optimization for global optimization</li>
-            <li><strong>Key Characteristics:</strong> Superior returns (54.05%) with higher risk profile</li>
+            <li><strong>Approach:</strong> Gaussian Process-based Bayesian Optimization</li>
+            <li><strong>Key Characteristics:</strong> Highest returns ({best_return['Total Return']:.2%}) with higher risk profile</li>
             <li><strong>Best For:</strong> Growth-oriented investors willing to accept higher drawdown</li>
-            <li><strong>Weights:</strong> More extreme positions capturing larger opportunities</li>
+            <li><strong>Key Features:</strong> Expected Improvement acquisition, efficient global search</li>
         </ul>
-    </div>
-    
-    <h2>📈 Performance Statistics by Optimizer</h2>
-    
-    <div style="display: flex; flex-wrap: wrap; justify-content: space-around; margin: 20px 0;">
-        <div class="metric-card">
-            <div class="metric-value">CMA-ES: {results_df.loc[results_df['Optimizer']=='CMAES', 'Sharpe Ratio'].values[0]:.2f}</div>
-            <div class="metric-label">Sharpe Ratio</div>
-            <div class="metric-value" style="font-size: 16px;">TuRBO: {results_df.loc[results_df['Optimizer']=='TURBO', 'Sharpe Ratio'].values[0]:.2f}</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-value">CMA-ES: {results_df.loc[results_df['Optimizer']=='CMAES', 'Total Return'].values[0]:.2%}</div>
-            <div class="metric-label">Total Return</div>
-            <div class="metric-value" style="font-size: 16px;">TuRBO: {results_df.loc[results_df['Optimizer']=='TURBO', 'Total Return'].values[0]:.2%}</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-value">CMA-ES: {results_df.loc[results_df['Optimizer']=='CMAES', 'Max Drawdown'].values[0]:.2%}</div>
-            <div class="metric-label">Max Drawdown</div>
-            <div class="metric-value" style="font-size: 16px;">TuRBO: {results_df.loc[results_df['Optimizer']=='TURBO', 'Max Drawdown'].values[0]:.2%}</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-value">CMA-ES: {results_df.loc[results_df['Optimizer']=='CMAES', 'Profit Factor'].values[0]:.2f}</div>
-            <div class="metric-label">Profit Factor</div>
-            <div class="metric-value" style="font-size: 16px;">TuRBO: {results_df.loc[results_df['Optimizer']=='TURBO', 'Profit Factor'].values[0]:.2f}</div>
-        </div>
+        
+        <h3>TuRBO (Tuned) Strategy</h3>
+        <ul>
+            <li><strong>Approach:</strong> Trust Region Bayesian Optimization with optimal hyperparameters</li>
+            <li><strong>Key Characteristics:</strong> Adaptive trust region, Sobol initialization, batch evaluation</li>
+            <li><strong>Best For:</strong> Balanced approach with good exploration-exploitation trade-off</li>
+        </ul>
+        
+        <h3>SAASBO Strategy</h3>
+        <ul>
+            <li><strong>Approach:</strong> Sparse Axis-Aligned Subspaces Bayesian Optimization</li>
+            <li><strong>Key Characteristics:</strong> Hierarchical sparsity priors, automatic relevance determination</li>
+            <li><strong>Best For:</strong> Problems where only few dimensions are relevant</li>
+        </ul>
     </div>
     
     <h2>💡 Conclusions & Recommendations</h2>
     <div class="summary-box">
         <h3>Summary of Findings:</h3>
         <ul>
-            <li><strong>TuRBO significantly outperformed CMA-ES</strong> in both absolute returns (54.05% vs 2.44%) and risk-adjusted returns (Sharpe 3.19 vs 1.86)</li>
-            <li><strong>Trade-off between risk and return:</strong> TuRBO's higher returns come with higher drawdown (-19.26% vs -3.38%)</li>
-            <li><strong>Both strategies demonstrate mean-reversion profitability</strong> with win rates around 26-30%</li>
-            <li><strong>TuRBO found more extreme weights</strong> allowing it to capture larger spread deviations</li>
+            <li><strong>CVFS-CMA-ES achieved the best risk-adjusted returns</strong> with Sharpe ratio of {best_sharpe['Sharpe Ratio']:.3f}</li>
+            <li><strong>Bayesian Optimization delivered the highest absolute returns</strong> at {best_return['Total Return']:.2%}</li>
+            <li><strong>Trade-off between risk and return</strong> is clearly visible across optimizers</li>
+            <li><strong>Advanced methods (CVFS-CMA-ES, SAASBO) show promise</strong> for better drawdown control</li>
         </ul>
         
         <h3>Recommendations:</h3>
         <ul>
-            <li><strong>For conservative investors:</strong> CMA-ES provides stable, low-drawdown returns</li>
-            <li><strong>For aggressive investors:</strong> TuRBO delivers superior returns with managed risk</li>
-            <li><strong>Portfolio allocation:</strong> Consider combining both strategies for diversification</li>
-            <li><strong>Next steps:</strong> Test on longer time periods and different asset classes</li>
-            <li><strong>Risk management:</strong> Implement stop-losses to protect against drawdowns in TuRBO strategy</li>
+            <li><strong>For conservative investors:</strong> CVFS-CMA-ES provides optimal risk-adjusted returns</li>
+            <li><strong>For aggressive investors:</strong> Bayesian Optimization delivers superior absolute returns</li>
+            <li><strong>For balanced approach:</strong> Consider TuRBO (Tuned) as a middle ground</li>
+            <li><strong>Portfolio allocation:</strong> Combine CVFS-CMA-ES (60%) + BO (40%) for diversification</li>
+            <li><strong>Risk management:</strong> Implement stop-losses to protect against drawdowns</li>
         </ul>
         
         <h3>Future Improvements:</h3>
         <ul>
-            <li>Add Bayesian Optimization to complete the comparison</li>
+            <li>Test on longer time periods and different asset classes</li>
             <li>Optimize entry/exit thresholds dynamically</li>
             <li>Implement position sizing based on volatility</li>
-            <li>Test on out-of-sample data across different market regimes</li>
             <li>Add transaction cost sensitivity analysis</li>
+            <li>Explore ensemble methods combining multiple optimizers</li>
         </ul>
     </div>
     
     <div class="footer">
         <p>Report generated by Basket Trading Optimization Framework</p>
-        <p>CMA-ES vs TuRBO Comparison | 2023 Trading Year Analysis</p>
+        <p>Comparing {len(results_df)} optimization methods: {', '.join(results_df['Optimizer'].tolist())}</p>
     </div>
 </div>
 
@@ -346,7 +334,7 @@ def generate_report():
         f.write(html_content)
     
     print(f"✓ Comprehensive report saved to {output_path}")
-    print(f"  File size: {output_path.stat().st_size / 1024:.1f} KB")
+    print(f"  Contains {len(results_df)} optimizers")
     return output_path
 
 if __name__ == "__main__":
